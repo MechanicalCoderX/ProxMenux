@@ -697,22 +697,31 @@ packages_list=(
 
     cleanup
 
+msg_info2 "$(translate "Updating package lists…")"
+# silently update the local cache so installs can succeed
+/usr/bin/env DEBIAN_FRONTEND=noninteractive apt-get update -qq > /dev/null 2>&1
+ 
 # prompt user; each tag comes back on its own line
 selected_packages=()
-while IFS= read -r pkg; do
-    selected_packages+=("$pkg")
-done < <(
-    whiptail --separate-output --title "System Utilities" \
-        --checklist "$(translate "Select the system utilities to install:")" \
-        20 70 12 "${packages_list[@]}" \
-        3>&1 1>&2 2>&3
-)
-+
-# cancelled?
-if [ ${#selected_packages[@]} -eq 0 ]; then
-    msg_warn "$(translate "No packages selected for installation or user cancelled")"
-    return
-fi
+    while IFS= read -r pkg; do
+        selected_packages+=("$pkg")
+    done < <(
+        whiptail --separate-output \
+            --title "System Utilities" \
+            --checklist "$(translate "Select the system utilities to install:")" \
+            20 70 12 \
+            "${packages_list[@]}" \
+            3>&1 1>&2 2>&3
+    )
+
+    # handle both “nothing chosen” and “Cancel pressed”
+    if [ ${#selected_packages[@]} -eq 0 ]; then
+        msg_warn "$(translate "No packages selected for installation or user cancelled")"
+        return
+    fi
+
+    # DEBUG: show exactly what we’re about to install
+    msg_info2 "$(translate "Will install the following packages:")" "${selected_packages[*]}"
 
     tput civis
     tput sc

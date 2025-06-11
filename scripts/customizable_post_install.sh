@@ -697,21 +697,22 @@ packages_list=(
 
     cleanup
 
-    choices=$(whiptail --title "System Utilities" \
-        --checklist "$(translate "Select the system utilities to install:")" 20 70 12 \
-        "${packages_list[@]}" 3>&1 1>&2 2>&3)
-
-    if [ $? -ne 0 ]; then
-        msg_warn "$(translate "Installation cancelled by user")"
-        return
-    fi
-
-    selected_packages=($choices)
-
-    if [ ${#selected_packages[@]} -eq 0 ]; then
-        msg_warn "$(translate "No packages selected for installation")"
-        return
-    fi
+# prompt user; each tag comes back on its own line
+selected_packages=()
+while IFS= read -r pkg; do
+    selected_packages+=("$pkg")
+done < <(
+    whiptail --separate-output --title "System Utilities" \
+        --checklist "$(translate "Select the system utilities to install:")" \
+        20 70 12 "${packages_list[@]}" \
+        3>&1 1>&2 2>&3
+)
++
+# cancelled?
+if [ ${#selected_packages[@]} -eq 0 ]; then
+    msg_warn "$(translate "No packages selected for installation or user cancelled")"
+    return
+fi
 
     tput civis
     tput sc
